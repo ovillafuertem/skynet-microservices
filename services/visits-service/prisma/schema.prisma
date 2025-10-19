@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ClientStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum VisitStatus {
+  PLANNED
+  IN_PROGRESS
+  DONE
+  CANCELED
+  NO_SHOW
+}
+
+enum CheckType {
+  CHECK_IN
+  CHECK_OUT
+  
+}
+
+enum CheckSource {
+  ONLINE
+  OFFLINE
+}
+
+enum CheckMethod {
+  GEO
+  MANUAL
+  QR
+}
+
+
+model Client {
+  id        String       @id @default(uuid())
+  name      String
+  email     String       @unique
+  phone     String?
+  status    ClientStatus @default(ACTIVE)
+  notes     String?      @db.Text
+  address   String?
+  lat       Float?
+  lng       Float?
+  visits    Visit[]
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+model Technician {
+  id             String  @id @default(uuid())
+  keycloakUserId String  @unique   
+  displayName    String
+  email          String? @unique
+  phone          String?
+  visits         Visit[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Visit {
+  id            String      @id @default(uuid())
+  clientId      String
+  client        Client      @relation(fields: [clientId], references: [id])
+  technicianId  String
+  technician    Technician  @relation(fields: [technicianId], references: [id])
+  scheduledDate DateTime
+  windowStart   DateTime?
+  windowEnd     DateTime?
+  status        VisitStatus @default(PLANNED)
+  notes         String?     @db.Text
+  plannedAt     DateTime    @default(now())
+  startedAt     DateTime?
+  completedAt   DateTime?
+  canceledAt    DateTime?
+  cancelReason  String?
+  checkInAt     DateTime?
+  checkInLat    Float?
+  checkInLng    Float?
+  checkOutAt    DateTime?
+  checkOutLat   Float?
+  checkOutLng   Float?
+  reportData    Json?
+  reportSentAt  DateTime?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  checks        VisitCheck[]
+  plannedLat    Float?
+  plannedLng    Float?
+
+  @@index([scheduledDate])
+  @@index([technicianId, scheduledDate])
+}
+
+
+model VisitCheck {
+  id              String       @id @default(uuid())
+  visitId         String
+  type            CheckType
+  technicianId    String
+  occurredAt      DateTime     @default(now())
+  deviceAt        DateTime?
+  lat             Float?
+  lng             Float?
+  distanceMeters  Int?
+  source          CheckSource  @default(ONLINE)
+  method          CheckMethod  @default(GEO)
+  verified        Boolean      @default(false)
+  verificationMsg String?
+  deviceId        String?
+  ip              String?
+  notes           String?
+  photoUrl        String?
+  idemKeyHash     String?      @unique
+  visit           Visit        @relation(fields: [visitId], references: [id])
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([visitId, type])
+}

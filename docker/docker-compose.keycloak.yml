@@ -1,0 +1,52 @@
+services:
+  keycloak-db:
+    image: postgres:16-alpine
+    container_name: skynet_keycloak_db
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+    volumes:
+      - keycloak_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U keycloak -d keycloak"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    ports:
+      - "5433:5432"  # si ya usamos el 5432 en local
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: skynet_keycloak
+    depends_on:
+      keycloak-db:
+        condition: service_healthy
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_USERNAME: keycloak
+      KC_DB_PASSWORD: keycloak
+      KC_DB_URL: jdbc:postgresql://keycloak-db:5432/keycloak
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+      KC_PROXY: "edge"
+      KC_HTTP_ENABLED: "true"
+      # Útil si más adelante ponemos un proxy con hostname fijo:
+      # KC_HOSTNAME: "auth.localtest.me"
+    volumes:
+      - ../infra/keycloak/realm-export:/opt/keycloak/data/import
+    command:
+      - start-dev
+      - --import-realm
+    ports:
+      - "8081:8080" # UI de Keycloak
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  keycloak_db_data:
