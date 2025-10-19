@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Client" ADD COLUMN     "address" TEXT,
+ADD COLUMN     "lat" DOUBLE PRECISION,
+ADD COLUMN     "lng" DOUBLE PRECISION;
