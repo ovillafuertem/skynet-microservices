@@ -92,8 +92,3 @@ Diseñar e implementar una **solución informática basada en microservicios** q
 ## 🧭 Objetivo General
 
 > Implementar una solución web basada en microservicios que permita la **gestión integral de visitas técnicas** para SkyNet S.A., optimizando la planificación, ejecución y supervisión de actividades en tiempo real.
-
----
-
-¿Quieres que te lo deje en un archivo `.md` descargable (por ejemplo `Project_Canvas_SkyNet.md`)?
-Así puedes subirlo directo a un repositorio o usarlo como contexto inicial para Codex.
