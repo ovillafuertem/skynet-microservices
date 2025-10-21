@@ -38,6 +38,7 @@ services:
       retries: 5
     networks:
       - skynet_net
+      - keycloak_net
 
   pgadmin:
     image: dpage/pgadmin4:${PGADMIN_TAG}
@@ -89,22 +90,30 @@ services:
     networks:
       - skynet_net
 
-  clients-service:
+  clients:
     build:
       context: ./services/clients-service
+    container_name: skynet_clients
     env_file:
       - ./services/clients-service/.env
+    environment:
+      - NODE_ENV=production
     depends_on:
       - postgres
     ports:
       - "3000:3000"
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/health"]
+      test: ["CMD", "curl", "-fsS", "http://localhost:3000/health"]
       interval: 10s
       timeout: 3s
       retries: 5
       start_period: 15s
+    networks:
+      - skynet_net
+      - keycloak_net
 
   visits:
     build:
@@ -166,6 +175,10 @@ services:
 networks:
   skynet_net:
     driver: bridge
+
+  keycloak_net:
+    external: true
+    name: docker_default
 
 volumes:
   pg_data:

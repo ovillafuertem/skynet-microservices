@@ -5,18 +5,26 @@ import { ExtractJwt, Strategy, StrategyOptions } from 'passport-jwt';
 import { passportJwtSecret } from 'jwks-rsa';
 import { ConfigService } from '@nestjs/config';
 
+const readOptional = (config: ConfigService, key: string): string | undefined =>
+  config.get<string>(key) ?? process.env[key];
+
+const readRequired = (config: ConfigService, key: string): string => {
+  const value = readOptional(config, key);
+  if (!value) throw new InternalServerErrorException(`Missing ${key}`);
+  return value;
+};
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(private readonly config: ConfigService) {
-    const issuer = config.get<string>('KEYCLOAK_ISSUER');
-    if (!issuer) throw new InternalServerErrorException('Missing KEYCLOAK_ISSUER');
+    const issuer = readRequired(config, 'KEYCLOAK_ISSUER');
 
-    // si no te pasan KEYCLOAK_JWKS_URI, lo derivamos del issuer
+    // si no pasan KEYCLOAK_JWKS_URI, lo derivamos del issuer
     const jwksUri =
-      config.get<string>('KEYCLOAK_JWKS_URI') ??
+      readOptional(config, 'KEYCLOAK_JWKS_URI') ??
       new URL('/protocol/openid-connect/certs', issuer).toString();
 
-    const audience = config.get<string>('KEYCLOAK_AUDIENCE'); // opcional
+    const audience = readOptional(config, 'KEYCLOAK_AUDIENCE'); // opcional
 
     if (!jwksUri) throw new InternalServerErrorException('Missing JWKS URI');
 
