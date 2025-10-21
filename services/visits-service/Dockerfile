@@ -7,6 +7,7 @@ RUN mkdir -p ${PUPPETEER_CACHE_DIR} \
   && apt-get update \
   && apt-get install -y --no-install-recommends \
     ca-certificates \
+    curl \
     fonts-liberation \
     libasound2 \
     libatk-bridge2.0-0 \
@@ -39,6 +40,7 @@ RUN mkdir -p ${PUPPETEER_CACHE_DIR} \
     libxrandr2 \
     libxss1 \
     libxtst6 \
+    openssl \
     wget \
     xdg-utils \
   && rm -rf /var/lib/apt/lists/*
@@ -48,6 +50,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --include=dev && chown -R node:node ${PUPPETEER_CACHE_DIR}
 
 FROM deps AS builder
+COPY prisma ./prisma
+RUN ./node_modules/.bin/prisma generate
 COPY . .
 RUN npm run build
 
@@ -61,7 +65,8 @@ COPY --chown=node:node --from=deps /home/node/.cache/puppeteer /home/node/.cache
 COPY --chown=node:node package.json package-lock.json ./
 COPY --chown=node:node --from=builder /app/dist ./dist
 COPY --chown=node:node --from=builder /app/prisma ./prisma
+COPY --chown=node:node --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 EXPOSE 3001
 USER node
 ENV PUPPETEER_CACHE_DIR=/home/node/.cache/puppeteer
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main.js"]

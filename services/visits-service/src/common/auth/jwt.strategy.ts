@@ -21,7 +21,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
         cache: true,
         rateLimit: true,
         jwksRequestsPerMinute: 10,
-        jwksUri: `${required('KEYCLOAK_ISSUER')}/protocol/openid-connect/certs`,
+        jwksUri:
+          process.env.KEYCLOAK_JWKS_URI ??
+          `${required('KEYCLOAK_ISSUER')}/protocol/openid-connect/certs`,
         
       }),
       ignoreExpiration: false,

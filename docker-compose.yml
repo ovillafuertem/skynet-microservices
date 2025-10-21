@@ -133,6 +133,7 @@ services:
       - "3002:3001"
     networks:
       - skynet_net
+      - keycloak_net
 
   notifications:
     build:
