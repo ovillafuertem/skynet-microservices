@@ -27,6 +27,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
+      TZ: America/Guatemala
     volumes:
       - pg_data:/var/lib/postgresql/data
     ports:
@@ -151,6 +152,7 @@ services:
       - ./services/clients-service/.env
     environment:
       - NODE_ENV=production
+      - TZ=America/Guatemala
     depends_on:
       - postgres
     ports:
@@ -177,6 +179,7 @@ services:
     environment:
       - NODE_ENV=production
       - REDIS_URL=redis://redis:6379
+      - TZ=America/Guatemala
     depends_on:
       postgres:
         condition: service_healthy
@@ -199,6 +202,7 @@ services:
       - REDIS_URL=redis://redis:6379
       - SMTP_HOST=mailhog
       - SMTP_PORT=1025
+      - TZ=America/Guatemala
     depends_on:
       redis:
         condition: service_started
@@ -219,6 +223,7 @@ services:
       - ./frontend/.env.docker
     environment:
       - NODE_ENV=production
+      - TZ=America/Guatemala
     depends_on:
       keycloak:
         condition: service_started
@@ -237,6 +242,8 @@ services:
       - "host.docker.internal:host-gateway"
 
   mailhog:
+    environment:
+      TZ: America/Guatemala
     image: mailhog/mailhog:v1.0.1
     container_name: skynet_mailhog
     ports:

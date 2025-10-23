@@ -1,98 +1,102 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Clients Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Microservicio NestJS encargado de administrar la libreta de clientes de SkyNet Field Ops. Expone un CRUD protegido con Keycloak, geocodifica direcciones y ofrece información que consume el visits-service (para asignar visitas) y el frontend (mapas y listados).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+---
 
-## Description
+## ⚙️ Stack técnico
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+- **NestJS 10** con TypeScript.
+- **Prisma ORM** apuntando a la base `skynet_db`.
+- **Keycloak** como Identity Provider (valida tokens RS256).
+- **Zod** para validar DTOs y respuestas.
+- **Axios + Google Maps API** para convertir direcciones a coordenadas cuando se crean o actualizan clientes.
 
-## Project setup
+---
+
+## 🚀 Levantar el servicio en local
 
 ```bash
-$ npm install
+cd services/clients-service
+npm install
+npm run start:dev
 ```
 
-## Compile and run the project
+Variables indispensables (incluidas en `.env` y automáticamente inyectadas por Docker):
 
-```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+```
+PORT=3000
+DATABASE_URL=postgresql://skynet:skynet_pass@postgres:5432/skynet_clients?schema=public
+KEYCLOAK_ISSUER=http://localhost:8080/realms/skynet
+KEYCLOAK_JWKS_URI=http://keycloak:8080/realms/skynet/protocol/openid-connect/certs
+KEYCLOAK_CLIENT_ID=skynet-api
+TZ=America/Guatemala
 ```
 
-## Run tests
+Si ejecutas el servicio desde tu máquina (sin Docker), cambia el host de la base de datos a `localhost` y asegúrate de que Keycloak esté expuesto en `http://localhost:8080`.
 
-```bash
-# unit tests
-$ npm run test
+---
 
-# e2e tests
-$ npm run test:e2e
+## 🚪 Endpoints destacados
 
-# test coverage
-$ npm run test:cov
-```
+| Método | Ruta | Descripción | Roles permitidos |
+|--------|------|-------------|------------------|
+| `GET /clients` | Listado paginado y filtrable | `ADMIN`, `SUPERVISOR` |
+| `POST /clients` | Crea un cliente y geolocaliza la dirección si hay datos suficientes | `ADMIN`, `SUPERVISOR` |
+| `PATCH /clients/:id` | Actualiza información general y coordenadas | `ADMIN`, `SUPERVISOR` |
+| `DELETE /clients/:id` | Marca el cliente como inactivo (soft delete) | `ADMIN` |
+| `GET /clients/:id/visits` | Devuelve visitas relacionadas (proxy a visits-service) | `ADMIN`, `SUPERVISOR` |
 
-## Deployment
+Todos los endpoints exigen un token Bearer emitido por Keycloak. El guard `KeycloakAuthGuard` verifica la firma y opcionalmente el rol requerido.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+---
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+## 📍 Geocodificación
 
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
+Al crear o editar un cliente se intenta obtener latitud/longitud utilizando la API de Google Maps:
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+1. Si se dispone de `googlePlaceId`, se consulta directamente el Place Details API.
+2. En caso contrario se arma una cadena con la dirección y se usa Geocoding API.
+3. Los errores de geocodificación no detienen el guardado; el log indica qué ocurrió.
 
-## Resources
+Configura la variable `GOOGLE_MAPS_API_KEY` si deseas habilitar este comportamiento fuera de Docker.
 
-Check out a few resources that may come in handy when working with NestJS:
+---
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## 🔐 Seguridad y pruebas
 
-## Support
+- Usa el endpoint de salud `GET /health` para comprobar que el servicio responde (no requiere token).
+- Para probar con cURL:
+  ```bash
+  TOKEN=$(node ../scripts/get-token.js admin1 Admin123!)
+  curl http://localhost:3000/clients \
+    -H "Authorization: Bearer $TOKEN"
+  ```
+  (El script `scripts/get-token.js` intercambia credenciales demo por un token Keycloak).
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+- Los tests unitarios básicos se ejecutan con:
+  ```bash
+  npm run test
+  ```
 
-## Stay in touch
+---
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## 🔁 Interacción con otros servicios
 
-## License
+- **visits-service** consume este microservicio para obtener clientes al crear una visita.
+- **frontend** usa el proxy `/api/gateway/clients/*` para mostrar listados y mapas.
+- **notifications-service** reutiliza los datos del cliente para armar el correo de resumen.
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+La separación favorece que en un despliegue real se pueda escalar el CRUD de clientes de forma independiente.
+
+---
+
+## 🧯 Troubleshooting
+
+- **401/403 inesperados**: revisa que el `KEYCLOAK_ISSUER` del contenedor coincida con el `iss` configurado en Keycloak (en este proyecto es `http://localhost:8080/realms/skynet`).
+- **Errores de Prisma**: ejecuta `npx prisma generate` dentro de la carpeta si cambiaste el esquema; las migraciones están ubicadas en `prisma/migrations`.
+- **Sin coordenadas**: asegúrate de tener una API key válida o agrega `lat` y `lng` manualmente en las mutaciones.
+
+---
+
+Con esto tienes la información necesaria para comprender, ejecutar y mantener el clients-service dentro del ecosistema de SkyNet Field Ops.

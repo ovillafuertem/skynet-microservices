@@ -8,6 +8,7 @@ Servicio NestJS encargado de generar notificaciones por correo electrónico y ad
   - `REDIS_URL` (o `REDIS_HOST` / `REDIS_PORT`)
   - `SMTP_HOST`, `SMTP_PORT`, `MAIL_FROM`
   - `PDF_COMPANY_NAME`
+  - `TZ=America/Guatemala` (para alinear la hora del correo con la que se muestra en la web)
 - El contenedor está preparado con Puppeteer/Chromium y depende de Redis y MailHog.
 
 ## Pruebas manuales
@@ -53,5 +54,5 @@ docker compose logs -f notifications
 
 ## Observaciones
 
-- Si levanta el servicio fuera de Docker (`npm run start`), ajuste `REDIS_HOST=127.0.0.1` para encontrar la instancia de Redis que corre en el host.
+- Si levanta el servicio fuera de Docker (`npm run start`), ajuste `REDIS_HOST=127.0.0.1` y mantenga la misma zona horaria (`TZ`) para que el timestamp del correo no difiera del registrado en visits-service.
 - Puppeteer utiliza la caché ubicada en `/home/node/.cache/puppeteer` dentro del contenedor; no es necesario descargar Chromium manualmente.
