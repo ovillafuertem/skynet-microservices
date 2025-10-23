@@ -65,6 +65,9 @@ async function refreshAccessToken(token: JWT): Promise<JWT> {
     console.error("Error refreshing access token", error);
     return {
       ...token,
+      access_token: undefined,
+      refresh_token: undefined,
+      access_token_expires: 0,
       error: "RefreshAccessTokenError"
     };
   }
@@ -79,7 +82,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Keycloak({
       clientId: process.env.KEYCLOAK_CLIENT_ID!,
       clientSecret: process.env.KEYCLOAK_CLIENT_SECRET!,
-      issuer: process.env.KEYCLOAK_ISSUER
+      issuer: process.env.KEYCLOAK_PUBLIC_ISSUER ?? process.env.KEYCLOAK_ISSUER,
+      wellKnown: `${process.env.KEYCLOAK_ISSUER}/.well-known/openid-configuration`,
+      authorization: {
+        url: `${process.env.KEYCLOAK_PUBLIC_ISSUER ?? process.env.KEYCLOAK_ISSUER}/protocol/openid-connect/auth`
+      },
+      token: `${process.env.KEYCLOAK_ISSUER}/protocol/openid-connect/token`,
+      userinfo: `${process.env.KEYCLOAK_ISSUER}/protocol/openid-connect/userinfo`,
+      jwks_endpoint: `${process.env.KEYCLOAK_ISSUER}/protocol/openid-connect/certs`
     })
   ],
   callbacks: {
@@ -120,13 +130,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   events: {
     async signOut(message) {
       const token = (message as { token?: JWT | null })?.token;
-      if (!token?.refresh_token) return;
       const issuer = process.env.KEYCLOAK_ISSUER;
+      const publicIssuer = process.env.KEYCLOAK_PUBLIC_ISSUER ?? issuer;
       const clientId = process.env.KEYCLOAK_CLIENT_ID;
       const clientSecret = process.env.KEYCLOAK_CLIENT_SECRET;
-      if (!issuer || !clientId || !clientSecret) return;
+      if (!issuer || !publicIssuer || !clientId || !clientSecret || !token?.refresh_token) {
+        return;
+      }
       try {
-        await fetch(`${issuer}/protocol/openid-connect/logout`, {
+        const fetchUrl = `${issuer}/protocol/openid-connect/logout`;
+        await fetch(fetchUrl, {
           method: "POST",
           headers: {
             "Content-Type": "application/x-www-form-urlencoded"

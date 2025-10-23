@@ -24,6 +24,39 @@
       }
     },
     {
+      "clientId": "skynet-web",
+      "name": "SkyNet Web",
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "secret": "skynet-web-secret",
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "redirectUris": [
+        "http://localhost:3006/*"
+      ],
+      "webOrigins": [
+        "http://localhost:3006"
+      ],
+      "rootUrl": "http://localhost:3006",
+      "protocolMappers": [
+        {
+          "name": "audience-skynet-api",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "skynet-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false"
+          }
+        }
+      ]
+    },
+    {
       "clientId": "swagger-ui",
       "name": "Swagger UI",
       "protocol": "openid-connect",

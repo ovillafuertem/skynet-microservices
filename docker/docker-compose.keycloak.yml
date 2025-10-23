@@ -42,11 +42,6 @@ services:
       - --import-realm
     ports:
       - "8081:8080" # UI de Keycloak
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost:8080/health/ready || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 20
 
 volumes:
   keycloak_db_data:
